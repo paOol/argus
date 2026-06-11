@@ -80,8 +80,10 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 .output
+
+# dist is committed so the package can be installed straight from GitHub
+!/dist
 
 # Gatsby files
 .cache/

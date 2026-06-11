@@ -19,6 +19,7 @@ import { findWhisperBinary, runWhisper } from './whisper.js';
 
 export { detectPlatform } from './platform.js';
 export { parseTelegramUrl, resolveTelegramVideo, extractVideoUrlFromEmbedHtml } from './telegram.js';
+export { resolveRedditVideo, extractRedditVideoFromPostHtml, parseRedditChallenge } from './reddit.js';
 export { resolveModel, defaultModelDir, KNOWN_MODELS, DEFAULT_MODEL } from './models.js';
 export { toSrt, toVtt, toTimestampedText } from './format.js';
 export {
@@ -46,7 +47,7 @@ export type {
 
 /**
  * Transcribe the audio of a video URL (YouTube, Instagram, Xiaohongshu,
- * Telegram, or anything yt-dlp supports) entirely with local tools.
+ * Telegram, Reddit, or anything yt-dlp supports) entirely with local tools.
  *
  * Pipeline: detect platform → download (audio-only when the site allows it)
  * → strip/resample audio with ffmpeg → transcribe with whisper.cpp.
@@ -71,6 +72,7 @@ export async function transcribe(url: string, options: TranscribeOptions = {}): 
     emit({ stage: 'download', message: `Downloading media (${platform})` });
     const media = await downloadMedia(url, platform, workDir, {
       ytDlpPath: options.binaries?.ytDlp,
+      ffmpegPath: options.binaries?.ffmpeg,
       cookiesFromBrowser: options.cookiesFromBrowser,
       timeoutMs: options.timeoutMs,
       signal: options.signal,

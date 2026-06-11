@@ -5,8 +5,10 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as WebReadableStream } from 'node:stream/web';
 
+import { downloadAudioStream } from './audio.js';
 import { DownloadError, MissingBinaryError } from './errors.js';
 import { ExecError, exec, findBinary } from './exec.js';
+import { resolveRedditVideo } from './reddit.js';
 import { resolveTelegramVideo } from './telegram.js';
 import type { Platform, ProgressEvent } from './types.js';
 
@@ -15,6 +17,7 @@ const BROWSER_UA =
 
 export interface DownloadOptions {
   ytDlpPath?: string | undefined;
+  ffmpegPath?: string | undefined;
   cookiesFromBrowser?: string | undefined;
   timeoutMs?: number | undefined;
   signal?: AbortSignal | undefined;
@@ -204,9 +207,36 @@ async function downloadWithYtDlp(
   return { filePath: join(destDir, media), title };
 }
 
+async function downloadRedditAudio(
+  url: string,
+  destDir: string,
+  options: DownloadOptions,
+): Promise<DownloadedMedia> {
+  const emit = options.onProgress ?? (() => {});
+
+  emit({ stage: 'resolve', message: 'Resolving Reddit post' });
+  const { videoUrl, title } = await resolveRedditVideo(url, {
+    signal: options.signal,
+    timeoutMs: options.timeoutMs,
+  });
+
+  emit({ stage: 'download', message: 'Downloading audio from Reddit CDN' });
+  const filePath = join(destDir, 'media.m4a');
+  await downloadAudioStream(videoUrl, filePath, {
+    ffmpegPath: options.ffmpegPath,
+    userAgent: BROWSER_UA,
+    timeoutMs: options.timeoutMs,
+    signal: options.signal,
+  });
+  return { filePath, title };
+}
+
 /**
  * Download the media for a URL into `destDir`.
  * - Telegram: built-in embed-page extractor + direct CDN streaming (no yt-dlp involved).
+ * - Reddit: built-in post-page extractor (with bot-check answering) + ffmpeg
+ *   pulling only the audio track from the v.redd.it stream; yt-dlp is the
+ *   fallback when `cookiesFromBrowser` is provided.
  * - Xiaohongshu short links: redirect-resolved first, then handed to yt-dlp.
  * - Everything else: yt-dlp, requesting audio-only formats when the site offers them.
  */
@@ -232,6 +262,17 @@ export async function downloadMedia(
       onProgress: (percent) => emit({ stage: 'download', ...(percent !== undefined ? { percent } : {}) }),
     });
     return { filePath, title: `Telegram: ${post.channel}/${post.messageId}` };
+  }
+
+  if (platform === 'reddit') {
+    try {
+      return await downloadRedditAudio(url, destDir, options);
+    } catch (cause) {
+      // With browser cookies, yt-dlp's authenticated Reddit extractor can
+      // handle posts the anonymous page-scrape cannot (private subs, etc.).
+      if (!options.cookiesFromBrowser) throw cause;
+      return downloadWithYtDlp(url, destDir, options);
+    }
   }
 
   let target = url;

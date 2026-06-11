@@ -18,6 +18,17 @@ const XIAOHONGSHU_HOSTS = new Set([
     'www.rednote.com',
 ]);
 const TELEGRAM_HOSTS = new Set(['t.me', 'telegram.me', 'www.t.me', 'www.telegram.me']);
+const REDDIT_HOSTS = new Set([
+    'reddit.com',
+    'www.reddit.com',
+    'old.reddit.com',
+    'new.reddit.com',
+    'np.reddit.com',
+    'sh.reddit.com',
+    'm.reddit.com',
+    'redd.it',
+    'v.redd.it',
+]);
 /**
  * Detect which platform a URL belongs to.
  * Unknown hosts return `generic` — they are still attempted via yt-dlp,
@@ -45,6 +56,8 @@ export function detectPlatform(url) {
         return 'xiaohongshu';
     if (TELEGRAM_HOSTS.has(host))
         return 'telegram';
+    if (REDDIT_HOSTS.has(host))
+        return 'reddit';
     return 'generic';
 }
 //# sourceMappingURL=platform.js.map

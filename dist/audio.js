@@ -1,5 +1,5 @@
 import { stat } from 'node:fs/promises';
-import { AudioExtractionError, MissingBinaryError } from './errors.js';
+import { AudioExtractionError, DownloadError, MissingBinaryError } from './errors.js';
 import { ExecError, exec, findBinary } from './exec.js';
 const FFMPEG_INSTALL_HINT = 'Install it with `brew install ffmpeg` (macOS), `apt install ffmpeg` (Debian/Ubuntu), or see https://ffmpeg.org/download.html';
 /** Bytes per second of 16 kHz mono s16le PCM. */
@@ -50,5 +50,38 @@ export async function extractAudio(inputPath, outputPath, options = {}) {
         throw new AudioExtractionError(`Extracted audio from ${inputPath} is empty — the source may have no audio track`);
     }
     return { durationSeconds: (size - 44) / WAV_BYTES_PER_SECOND };
+}
+/**
+ * Download just the audio track of a remote stream (HLS playlist or MP4 URL)
+ * into a local .m4a, copying the codec — ffmpeg fetches only the audio
+ * segments, so this is far smaller than downloading the video.
+ */
+export async function downloadAudioStream(streamUrl, outputPath, options = {}) {
+    const ffmpeg = findBinary(['ffmpeg'], options.ffmpegPath);
+    if (!ffmpeg)
+        throw new MissingBinaryError('ffmpeg', FFMPEG_INSTALL_HINT);
+    const args = [
+        '-hide_banner',
+        '-nostdin',
+        '-y',
+        ...(options.userAgent ? ['-user_agent', options.userAgent] : []),
+        '-i', streamUrl,
+        '-vn', '-sn', '-dn',
+        '-c:a', 'copy',
+        outputPath,
+    ];
+    try {
+        await exec(ffmpeg, args, { timeoutMs: options.timeoutMs, signal: options.signal });
+    }
+    catch (cause) {
+        if (cause instanceof Error && 'code' in cause && cause.code === 'ENOENT') {
+            throw new MissingBinaryError('ffmpeg', FFMPEG_INSTALL_HINT);
+        }
+        if (cause instanceof ExecError && /does not contain any stream|Stream map .* matches no streams/i.test(cause.stderrTail)) {
+            throw new AudioExtractionError(`The video has no audio track, so there is nothing to transcribe (${streamUrl})`, { cause });
+        }
+        const detail = cause instanceof ExecError ? `\n${cause.stderrTail.trim().split('\n').slice(-6).join('\n')}` : '';
+        throw new DownloadError(`ffmpeg failed to download the audio stream from ${streamUrl}${detail}`, { cause });
+    }
 }
 //# sourceMappingURL=audio.js.map

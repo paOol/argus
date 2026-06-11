@@ -23,6 +23,11 @@ describe('detectPlatform', () => {
     ['https://t.me/durov/123', 'telegram'],
     ['https://t.me/s/durov/123', 'telegram'],
     ['https://telegram.me/somechannel/456', 'telegram'],
+    ['https://www.reddit.com/r/funny/comments/1u2mmyq/how_to_keep_your_fish_in_shape/', 'reddit'],
+    ['https://old.reddit.com/r/videos/comments/abc123/title/', 'reddit'],
+    ['https://reddit.com/r/funny/s/AbCdEf123', 'reddit'],
+    ['https://redd.it/1u2mmyq', 'reddit'],
+    ['https://v.redd.it/ye6kryzzfk6h1', 'reddit'],
     ['https://vimeo.com/12345', 'generic'],
     ['https://www.bilibili.com/video/BV1xx411c7mD', 'generic'],
   ])('%s -> %s', (url, expected) => {

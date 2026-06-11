@@ -1,6 +1,7 @@
 import type { Platform, ProgressEvent } from './types.js';
 export interface DownloadOptions {
     ytDlpPath?: string | undefined;
+    ffmpegPath?: string | undefined;
     cookiesFromBrowser?: string | undefined;
     timeoutMs?: number | undefined;
     signal?: AbortSignal | undefined;
@@ -34,6 +35,9 @@ export declare function isXhsNoteUrl(url: string): boolean;
 /**
  * Download the media for a URL into `destDir`.
  * - Telegram: built-in embed-page extractor + direct CDN streaming (no yt-dlp involved).
+ * - Reddit: built-in post-page extractor (with bot-check answering) + ffmpeg
+ *   pulling only the audio track from the v.redd.it stream; yt-dlp is the
+ *   fallback when `cookiesFromBrowser` is provided.
  * - Xiaohongshu short links: redirect-resolved first, then handed to yt-dlp.
  * - Everything else: yt-dlp, requesting audio-only formats when the site offers them.
  */

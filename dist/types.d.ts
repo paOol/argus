@@ -1,5 +1,5 @@
 /** Platforms with first-class support. `generic` falls through to yt-dlp's 1800+ extractors. */
-export type Platform = 'youtube' | 'instagram' | 'xiaohongshu' | 'telegram' | 'generic';
+export type Platform = 'youtube' | 'instagram' | 'xiaohongshu' | 'telegram' | 'reddit' | 'generic';
 export interface TranscriptSegment {
     /** Segment start time in seconds. */
     start: number;

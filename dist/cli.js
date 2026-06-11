@@ -13,7 +13,8 @@ Usage:
   argus doctor               Check that yt-dlp, ffmpeg, and whisper.cpp are installed
 
 Supported links: YouTube, Instagram, Xiaohongshu (incl. xhslink.com),
-public Telegram posts (t.me/<channel>/<id>), plus any other site yt-dlp knows.
+public Telegram posts (t.me/<channel>/<id>), Reddit video posts,
+plus any other site yt-dlp knows.
 
 Options:
   -m, --model <name|path>    Whisper model (default: ${DEFAULT_MODEL}).
@@ -37,6 +38,7 @@ Options:
 Examples:
   argus https://www.youtube.com/watch?v=dQw4w9WgXcQ
   argus https://t.me/durov/123 -f srt -o out.srt
+  argus https://www.reddit.com/r/funny/comments/abc123/some_video/
   argus https://www.xiaohongshu.com/explore/... -m small -l zh
 `;
 export function parseArgs(argv) {

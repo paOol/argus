@@ -1,0 +1,49 @@
+{
+  "name": "argus-transcribe",
+  "version": "0.1.0",
+  "description": "Local-first video transcription. Turn YouTube, Instagram, Xiaohongshu, and Telegram video links into text transcripts using only on-device tools (yt-dlp, ffmpeg, whisper.cpp) — no third-party APIs.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "argus": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.3"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "transcription",
+    "whisper",
+    "whisper.cpp",
+    "youtube",
+    "instagram",
+    "xiaohongshu",
+    "telegram",
+    "speech-to-text",
+    "yt-dlp",
+    "ffmpeg",
+    "local",
+    "offline"
+  ],
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

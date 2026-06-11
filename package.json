@@ -23,8 +23,11 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "prepare": "npm run build",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -45,5 +48,14 @@
     "@types/node": "^22.10.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
+  },
+  "author": "paOol",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paOol/argus.git"
+  },
+  "homepage": "https://github.com/paOol/argus#readme",
+  "bugs": {
+    "url": "https://github.com/paOol/argus/issues"
   }
 }

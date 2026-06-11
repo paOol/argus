@@ -10,6 +10,16 @@ URL ──▶ download (audio-only when possible) ──▶ ffmpeg (strip → 16
 - **Lean by design.** Downloads audio-only streams when the site offers them, deletes the source media the moment the WAV exists, streams downloads to disk (nothing is buffered in RAM), and defaults to a quantized ~60 MB whisper model.
 - **Telegram support without yt-dlp.** Public `t.me/<channel>/<id>` posts are resolved through Telegram's embed page with plain `fetch` — no bot token, no MTProto, no API.
 
+## Install
+
+Not published to npm — install straight from GitHub (`dist/` is committed, so no build step is required on install):
+
+```sh
+npm install github:paOol/argus
+# or
+yarn add paOol/argus
+```
+
 ## Requirements
 
 Three local binaries on your `PATH` (checked at runtime with friendly errors; run `argus doctor` to verify):

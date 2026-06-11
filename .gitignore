@@ -82,7 +82,10 @@ out
 .nuxt
 .output
 
-# dist is committed so the package can be installed straight from GitHub
+# NOTE: dist/ is intentionally committed so this package is installable directly
+# from a git/GitHub URL. yarn classic does not run `prepare` for git deps, so the
+# compiled output must already be present. Rebuild (`npm run build`) and commit
+# dist/ after changing src/.
 !/dist
 
 # Gatsby files

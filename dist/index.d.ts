@@ -2,13 +2,15 @@ import type { DependencyReport, BinaryPaths, TranscribeFileOptions, TranscribeOp
 export { detectPlatform } from './platform.js';
 export { parseTelegramUrl, resolveTelegramVideo, extractVideoUrlFromEmbedHtml } from './telegram.js';
 export { resolveRedditVideo, extractRedditVideoFromPostHtml, parseRedditChallenge } from './reddit.js';
+export { resolveTwitterVideo, parseTwitterStatusUrl, buildSyndicationToken, extractTwitterVideoFromSyndication, pickAudioRenditionUrl, } from './twitter.js';
 export { resolveModel, defaultModelDir, KNOWN_MODELS, DEFAULT_MODEL } from './models.js';
 export { toSrt, toVtt, toTimestampedText } from './format.js';
 export { ArgusError, UnsupportedUrlError, MissingBinaryError, DownloadError, AudioExtractionError, ModelFetchError, TranscriptionError, } from './errors.js';
 export type { Platform, TranscriptSegment, TranscribeResult, TranscribeOptions, TranscribeFileOptions, WhisperModel, BinaryPaths, ProgressEvent, ProgressStage, DependencyReport, DependencyStatus, } from './types.js';
 /**
  * Transcribe the audio of a video URL (YouTube, Instagram, Xiaohongshu,
- * Telegram, Reddit, or anything yt-dlp supports) entirely with local tools.
+ * Telegram, Reddit, Twitter/X, or anything yt-dlp supports) entirely with
+ * local tools.
  *
  * Pipeline: detect platform → download (audio-only when the site allows it)
  * → strip/resample audio with ffmpeg → transcribe with whisper.cpp.

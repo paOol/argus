@@ -14,7 +14,7 @@ Usage:
 
 Supported links: YouTube, Instagram, Xiaohongshu (incl. xhslink.com),
 public Telegram posts (t.me/<channel>/<id>), Reddit video posts,
-plus any other site yt-dlp knows.
+Twitter/X tweets (x.com/<user>/status/<id>), plus any other site yt-dlp knows.
 
 Options:
   -m, --model <name|path>    Whisper model (default: ${DEFAULT_MODEL}).

@@ -36,6 +36,16 @@ const REDDIT_HOSTS = new Set([
   'v.redd.it',
 ]);
 
+// x.com is the current host; twitter.com still serves the same status URLs.
+const TWITTER_HOSTS = new Set([
+  'x.com',
+  'www.x.com',
+  'mobile.x.com',
+  'twitter.com',
+  'www.twitter.com',
+  'mobile.twitter.com',
+]);
+
 /**
  * Detect which platform a URL belongs to.
  * Unknown hosts return `generic` — they are still attempted via yt-dlp,
@@ -61,6 +71,7 @@ export function detectPlatform(url: string): Platform {
   if (XIAOHONGSHU_HOSTS.has(host)) return 'xiaohongshu';
   if (TELEGRAM_HOSTS.has(host)) return 'telegram';
   if (REDDIT_HOSTS.has(host)) return 'reddit';
+  if (TWITTER_HOSTS.has(host)) return 'twitter';
 
   return 'generic';
 }

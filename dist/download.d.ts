@@ -38,6 +38,9 @@ export declare function isXhsNoteUrl(url: string): boolean;
  * - Reddit: built-in post-page extractor (with bot-check answering) + ffmpeg
  *   pulling only the audio track from the v.redd.it stream; yt-dlp is the
  *   fallback when `cookiesFromBrowser` is provided.
+ * - Twitter/X: built-in syndication-endpoint extractor + ffmpeg pulling only
+ *   the audio rendition; yt-dlp is the fallback when `cookiesFromBrowser` is
+ *   provided (for protected/login-gated tweets).
  * - Xiaohongshu short links: redirect-resolved first, then handed to yt-dlp.
  * - Everything else: yt-dlp, requesting audio-only formats when the site offers them.
  */

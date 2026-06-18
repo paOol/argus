@@ -8,6 +8,7 @@ import { DownloadError, MissingBinaryError } from './errors.js';
 import { ExecError, exec, findBinary } from './exec.js';
 import { resolveRedditVideo } from './reddit.js';
 import { resolveTelegramVideo } from './telegram.js';
+import { resolveTwitterVideo } from './twitter.js';
 const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 /** Follow xhslink.com (and similar) short-link redirects manually so yt-dlp sees the canonical URL. */
 export async function resolveRedirects(url, signal) {
@@ -180,12 +181,32 @@ async function downloadRedditAudio(url, destDir, options) {
     });
     return { filePath, title };
 }
+async function downloadTwitterAudio(url, destDir, options) {
+    const emit = options.onProgress ?? (() => { });
+    emit({ stage: 'resolve', message: 'Resolving tweet' });
+    const { videoUrl, title } = await resolveTwitterVideo(url, {
+        signal: options.signal,
+        timeoutMs: options.timeoutMs,
+    });
+    emit({ stage: 'download', message: 'Downloading audio from Twitter CDN' });
+    const filePath = join(destDir, 'media.m4a');
+    await downloadAudioStream(videoUrl, filePath, {
+        ffmpegPath: options.ffmpegPath,
+        userAgent: BROWSER_UA,
+        timeoutMs: options.timeoutMs,
+        signal: options.signal,
+    });
+    return { filePath, ...(title !== undefined ? { title } : {}) };
+}
 /**
  * Download the media for a URL into `destDir`.
  * - Telegram: built-in embed-page extractor + direct CDN streaming (no yt-dlp involved).
  * - Reddit: built-in post-page extractor (with bot-check answering) + ffmpeg
  *   pulling only the audio track from the v.redd.it stream; yt-dlp is the
  *   fallback when `cookiesFromBrowser` is provided.
+ * - Twitter/X: built-in syndication-endpoint extractor + ffmpeg pulling only
+ *   the audio rendition; yt-dlp is the fallback when `cookiesFromBrowser` is
+ *   provided (for protected/login-gated tweets).
  * - Xiaohongshu short links: redirect-resolved first, then handed to yt-dlp.
  * - Everything else: yt-dlp, requesting audio-only formats when the site offers them.
  */
@@ -213,6 +234,18 @@ export async function downloadMedia(url, platform, destDir, options = {}) {
         catch (cause) {
             // With browser cookies, yt-dlp's authenticated Reddit extractor can
             // handle posts the anonymous page-scrape cannot (private subs, etc.).
+            if (!options.cookiesFromBrowser)
+                throw cause;
+            return downloadWithYtDlp(url, destDir, options);
+        }
+    }
+    if (platform === 'twitter') {
+        try {
+            return await downloadTwitterAudio(url, destDir, options);
+        }
+        catch (cause) {
+            // With browser cookies, yt-dlp's authenticated extractor can reach
+            // protected/age-gated tweets the anonymous syndication endpoint cannot.
             if (!options.cookiesFromBrowser)
                 throw cause;
             return downloadWithYtDlp(url, destDir, options);

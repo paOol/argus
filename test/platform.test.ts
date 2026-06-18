@@ -28,6 +28,10 @@ describe('detectPlatform', () => {
     ['https://reddit.com/r/funny/s/AbCdEf123', 'reddit'],
     ['https://redd.it/1u2mmyq', 'reddit'],
     ['https://v.redd.it/ye6kryzzfk6h1', 'reddit'],
+    ['https://x.com/ai_rohitt/status/2067481249351176586', 'twitter'],
+    ['https://twitter.com/jack/status/20', 'twitter'],
+    ['https://mobile.twitter.com/jack/status/20', 'twitter'],
+    ['https://x.com/i/web/status/2067481249351176586', 'twitter'],
     ['https://vimeo.com/12345', 'generic'],
     ['https://www.bilibili.com/video/BV1xx411c7mD', 'generic'],
   ])('%s -> %s', (url, expected) => {

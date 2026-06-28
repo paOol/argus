@@ -20,6 +20,7 @@ export interface DownloadOptions {
   ytDlpPath?: string | undefined;
   ffmpegPath?: string | undefined;
   cookiesFromBrowser?: string | undefined;
+  cookiesFile?: string | undefined;
   timeoutMs?: number | undefined;
   signal?: AbortSignal | undefined;
   onProgress?: ((event: ProgressEvent) => void) | undefined;
@@ -162,7 +163,11 @@ async function downloadWithYtDlp(
     '--print', 'after_move:filepath',
     '--print', 'title',
   ];
-  if (options.cookiesFromBrowser) {
+  // yt-dlp rejects --cookies and --cookies-from-browser together; prefer the
+  // file form (works headless and self-refreshes) when both are provided.
+  if (options.cookiesFile) {
+    args.push('--cookies', options.cookiesFile);
+  } else if (options.cookiesFromBrowser) {
     args.push('--cookies-from-browser', options.cookiesFromBrowser);
   }
   args.push('--', url);

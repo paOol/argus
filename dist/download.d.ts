@@ -3,6 +3,7 @@ export interface DownloadOptions {
     ytDlpPath?: string | undefined;
     ffmpegPath?: string | undefined;
     cookiesFromBrowser?: string | undefined;
+    cookiesFile?: string | undefined;
     timeoutMs?: number | undefined;
     signal?: AbortSignal | undefined;
     onProgress?: ((event: ProgressEvent) => void) | undefined;

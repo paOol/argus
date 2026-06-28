@@ -121,7 +121,12 @@ async function downloadWithYtDlp(url, destDir, options) {
         '--print', 'after_move:filepath',
         '--print', 'title',
     ];
-    if (options.cookiesFromBrowser) {
+    // yt-dlp rejects --cookies and --cookies-from-browser together; prefer the
+    // file form (works headless and self-refreshes) when both are provided.
+    if (options.cookiesFile) {
+        args.push('--cookies', options.cookiesFile);
+    }
+    else if (options.cookiesFromBrowser) {
         args.push('--cookies-from-browser', options.cookiesFromBrowser);
     }
     args.push('--', url);

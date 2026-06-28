@@ -9,6 +9,7 @@ interface CliFlags {
     modelDir?: string;
     threads?: number;
     cookiesFromBrowser?: string;
+    cookiesFile?: string;
     timeoutSeconds?: number;
     ytDlp?: string;
     ffmpeg?: string;

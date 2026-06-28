@@ -31,6 +31,9 @@ Options:
       --cookies-from-browser <browser>
                              Read site cookies from a browser (chrome, firefox, safari, ...).
                              Needed for login-gated Instagram posts.
+      --cookies <file>       Use a Netscape cookies.txt for yt-dlp (works headless;
+                             yt-dlp refreshes it in place). Takes precedence over
+                             --cookies-from-browser.
       --timeout <seconds>    Per-step timeout.
       --yt-dlp <path>        Explicit yt-dlp binary.
       --ffmpeg <path>        Explicit ffmpeg binary.
@@ -55,6 +58,7 @@ interface CliFlags {
   modelDir?: string;
   threads?: number;
   cookiesFromBrowser?: string;
+  cookiesFile?: string;
   timeoutSeconds?: number;
   ytDlp?: string;
   ffmpeg?: string;
@@ -84,6 +88,7 @@ export function parseArgs(argv: string[]): CliFlags {
       case '--model-dir': flags.modelDir = takeValue(arg, argv[++i]); break;
       case '--threads': flags.threads = Number(takeValue(arg, argv[++i])); break;
       case '--cookies-from-browser': flags.cookiesFromBrowser = takeValue(arg, argv[++i]); break;
+      case '--cookies': flags.cookiesFile = takeValue(arg, argv[++i]); break;
       case '--timeout': flags.timeoutSeconds = Number(takeValue(arg, argv[++i])); break;
       case '--yt-dlp': flags.ytDlp = takeValue(arg, argv[++i]); break;
       case '--ffmpeg': flags.ffmpeg = takeValue(arg, argv[++i]); break;
@@ -161,6 +166,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     ...(flags.modelDir !== undefined ? { modelDir: flags.modelDir } : {}),
     ...(flags.threads !== undefined ? { threads: flags.threads } : {}),
     ...(flags.cookiesFromBrowser !== undefined ? { cookiesFromBrowser: flags.cookiesFromBrowser } : {}),
+    ...(flags.cookiesFile !== undefined ? { cookiesFile: flags.cookiesFile } : {}),
     ...(flags.timeoutSeconds !== undefined ? { timeoutMs: flags.timeoutSeconds * 1000 } : {}),
     ...(flags.ytDlp || flags.ffmpeg || flags.whisper
       ? {

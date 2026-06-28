@@ -28,6 +28,9 @@ Options:
       --cookies-from-browser <browser>
                              Read site cookies from a browser (chrome, firefox, safari, ...).
                              Needed for login-gated Instagram posts.
+      --cookies <file>       Use a Netscape cookies.txt for yt-dlp (works headless;
+                             yt-dlp refreshes it in place). Takes precedence over
+                             --cookies-from-browser.
       --timeout <seconds>    Per-step timeout.
       --yt-dlp <path>        Explicit yt-dlp binary.
       --ffmpeg <path>        Explicit ffmpeg binary.
@@ -82,6 +85,9 @@ export function parseArgs(argv) {
                 break;
             case '--cookies-from-browser':
                 flags.cookiesFromBrowser = takeValue(arg, argv[++i]);
+                break;
+            case '--cookies':
+                flags.cookiesFile = takeValue(arg, argv[++i]);
                 break;
             case '--timeout':
                 flags.timeoutSeconds = Number(takeValue(arg, argv[++i]));
@@ -171,6 +177,7 @@ export async function main(argv = process.argv.slice(2)) {
         ...(flags.modelDir !== undefined ? { modelDir: flags.modelDir } : {}),
         ...(flags.threads !== undefined ? { threads: flags.threads } : {}),
         ...(flags.cookiesFromBrowser !== undefined ? { cookiesFromBrowser: flags.cookiesFromBrowser } : {}),
+        ...(flags.cookiesFile !== undefined ? { cookiesFile: flags.cookiesFile } : {}),
         ...(flags.timeoutSeconds !== undefined ? { timeoutMs: flags.timeoutSeconds * 1000 } : {}),
         ...(flags.ytDlp || flags.ffmpeg || flags.whisper
             ? {

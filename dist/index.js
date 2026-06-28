@@ -42,6 +42,7 @@ export async function transcribe(url, options = {}) {
             ytDlpPath: options.binaries?.ytDlp,
             ffmpegPath: options.binaries?.ffmpeg,
             cookiesFromBrowser: options.cookiesFromBrowser,
+            cookiesFile: options.cookiesFile,
             timeoutMs: options.timeoutMs,
             signal: options.signal,
             onProgress: options.onProgress,

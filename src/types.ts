@@ -86,6 +86,15 @@ export interface TranscribeOptions {
    * (e.g. "chrome", "firefox", "safari"). Needed for login-gated Instagram posts.
    */
   cookiesFromBrowser?: string;
+  /**
+   * Path to a Netscape-format cookies.txt, passed to yt-dlp's `--cookies`.
+   * Unlike {@link cookiesFromBrowser} this needs no browser, so it works on
+   * headless servers. yt-dlp rewrites the file in place with refreshed session
+   * cookies after each run, so a file on a persistent volume keeps a
+   * login-gated session (e.g. Instagram) alive without manual rotation.
+   * Takes precedence over `cookiesFromBrowser` (yt-dlp rejects both at once).
+   */
+  cookiesFile?: string;
   /** Per-step timeout in milliseconds (applies to download, audio extraction, and transcription each). */
   timeoutMs?: number;
   /** Progress callback. */
@@ -95,7 +104,7 @@ export interface TranscribeOptions {
 }
 
 /** Options accepted by {@link transcribeFile} — everything except download-related fields. */
-export type TranscribeFileOptions = Omit<TranscribeOptions, 'cookiesFromBrowser'>;
+export type TranscribeFileOptions = Omit<TranscribeOptions, 'cookiesFromBrowser' | 'cookiesFile'>;
 
 export interface DependencyStatus {
   found: boolean;

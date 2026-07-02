@@ -25,6 +25,18 @@ export class DownloadError extends ArgusError {
         super('DOWNLOAD_FAILED', message, options);
     }
 }
+/**
+ * The link resolved to a post that exists but holds no video (e.g. an
+ * Instagram photo post). When the post carries images, their direct CDN URLs
+ * are attached so callers can handle the media some other way.
+ */
+export class NoVideoError extends ArgusError {
+    imageUrls;
+    constructor(message, imageUrls = []) {
+        super('NO_VIDEO', message);
+        this.imageUrls = imageUrls;
+    }
+}
 export class AudioExtractionError extends ArgusError {
     constructor(message, options) {
         super('AUDIO_EXTRACTION_FAILED', message, options);

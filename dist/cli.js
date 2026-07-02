@@ -3,7 +3,7 @@ import { realpathSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { toSrt, toTimestampedText, toVtt } from './format.js';
-import { ArgusError } from './errors.js';
+import { ArgusError, NoVideoError } from './errors.js';
 import { checkDependencies, transcribe } from './index.js';
 import { DEFAULT_MODEL, KNOWN_MODELS } from './models.js';
 const HELP = `argus — local-first video transcription (no third-party APIs)
@@ -43,6 +43,9 @@ Examples:
   argus https://t.me/durov/123 -f srt -o out.srt
   argus https://www.reddit.com/r/funny/comments/abc123/some_video/
   argus https://www.xiaohongshu.com/explore/... -m small -l zh
+
+Exit codes: 0 success, 1 error, 2 bad usage,
+            3 the link is an image post — its image URL(s) are printed to stdout.
 `;
 export function parseArgs(argv) {
     const flags = { format: 'text', keepAudio: false, quiet: false, doctor: false, help: false };
@@ -225,6 +228,15 @@ export async function main(argv = process.argv.slice(2)) {
     catch (error) {
         if (!flags.quiet && process.stderr.isTTY)
             process.stderr.write('\r\x1b[2K');
+        // Not a video (e.g. an Instagram photo post): print the image URLs on
+        // stdout — one per line — so scripts can pick them up, and exit with a
+        // distinct code so "image post" is distinguishable from a real failure.
+        if (error instanceof NoVideoError && error.imageUrls.length > 0) {
+            console.error(`Error (${error.code}): ${error.message}`);
+            for (const imageUrl of error.imageUrls)
+                console.log(imageUrl);
+            return 3;
+        }
         if (error instanceof ArgusError) {
             console.error(`Error (${error.code}): ${error.message}`);
         }

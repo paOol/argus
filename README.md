@@ -26,11 +26,11 @@ yarn add paOol/argus
 
 Three local binaries on your `PATH` (checked at runtime with friendly errors; run `argus doctor` to verify):
 
-| Tool                                                   | Used for                                                  | macOS install              |
-| ------------------------------------------------------ | --------------------------------------------------------- | -------------------------- |
-| [yt-dlp](https://github.com/yt-dlp/yt-dlp)             | YouTube / Instagram / Xiaohongshu (and 1800+ other sites) | `brew install yt-dlp`      |
-| [ffmpeg](https://ffmpeg.org)                           | Stripping + resampling audio                              | `brew install ffmpeg`      |
-| [whisper.cpp](https://github.com/ggml-org/whisper.cpp) | On-device speech-to-text                                  | `brew install whisper-cpp` |
+| Tool                                                   | Used for                                      | macOS install              |
+| ------------------------------------------------------ | --------------------------------------------- | -------------------------- |
+| [yt-dlp](https://github.com/yt-dlp/yt-dlp)             | YouTube / Xiaohongshu (and 1800+ other sites) | `brew install yt-dlp`      |
+| [ffmpeg](https://ffmpeg.org)                           | Stripping + resampling audio                  | `brew install ffmpeg`      |
+| [whisper.cpp](https://github.com/ggml-org/whisper.cpp) | On-device speech-to-text                      | `brew install whisper-cpp` |
 
 Node.js ≥ 20.3.
 
@@ -87,7 +87,22 @@ import { transcribeFile } from 'argus-transcribe';
 const { text } = await transcribeFile('./saved-video.mp4', { language: 'zh' });
 ```
 
-Other exports: `detectPlatform(url)`, `checkDependencies()`, `toSrt(segments)`, `toVtt(segments)`, `toTimestampedText(segments)`, typed errors (`UnsupportedUrlError`, `MissingBinaryError`, `DownloadError`, `AudioExtractionError`, `ModelFetchError`, `TranscriptionError` — all with a stable `.code`).
+Other exports: `detectPlatform(url)`, `checkDependencies()`, `toSrt(segments)`, `toVtt(segments)`, `toTimestampedText(segments)`, typed errors (`UnsupportedUrlError`, `MissingBinaryError`, `DownloadError`, `NoVideoError`, `AudioExtractionError`, `ModelFetchError`, `TranscriptionError` — all with a stable `.code`).
+
+When a link points at an image post instead of a video (e.g. an Instagram photo), `transcribe` throws `NoVideoError` (code `NO_VIDEO`) with the direct image URL(s) attached, so callers can handle the picture some other way:
+
+```ts
+import { transcribe, NoVideoError } from 'argus-transcribe';
+try {
+  const { text } = await transcribe(url);
+} catch (err) {
+  if (err instanceof NoVideoError) {
+    console.log('Image post:', err.imageUrls); // highest-res CDN URL per photo
+  } else throw err;
+}
+```
+
+The CLI does the same: it prints the image URL(s) to stdout, one per line, and exits with code `3` (vs `1` for real failures).
 
 ### CLI
 
@@ -115,7 +130,7 @@ Any whisper.cpp ggml model name or local `.bin` path works.
 ## Platform notes
 
 - **YouTube** — audio-only stream is downloaded (a few MB per minute, no video bytes). Shorts, `youtu.be`, music, and embed links all work.
-- **Instagram** — public Reels/posts work anonymously; Instagram sometimes gates content behind login, in which case pass `cookiesFromBrowser`.
+- **Instagram** — Reel/post/carousel links (`/reel/<code>`, `/p/<code>`, `/tv/<code>`, and `/share/...` links, which are redirect-resolved). Instagram blocks yt-dlp's anonymous access these days, so argus runs the same persisted GraphQL query Instagram's own logged-out web player uses and downloads just the audio-only DASH track (~60 kbps). Instagram rotates that query's `doc_id` every few weeks; when that happens argus re-harvests the current id from Instagram's JS bundles automatically and caches it in `~/.cache/argus/`. For private or login-gated posts pass `cookiesFromBrowser` to fall back to yt-dlp with your account. Photo posts (no video anywhere in the post) throw `NoVideoError` carrying the image URL(s) — the CLI prints them to stdout and exits with code 3.
 - **Xiaohongshu / RedNote** — `xiaohongshu.com/explore/...` links, the new `rednote.com` domain (rewritten to the original domain for yt-dlp), and `xhslink.com` share short-links (redirects are resolved, including recovery of note URLs from XHS's bot-wall `/404?...redirectPath=` bounces). Note: XHS links generally need a fresh `xsec_token` query param — copy links via the app/web "Share" button; old links expire and are reported as such.
 - **Telegram** — public channel posts only (`t.me/<channel>/<id>`, `t.me/s/...` also accepted). Private `t.me/c/...` links have no public embed; save the file with a Telegram client and use `transcribeFile()`. Very large videos may not be served via Telegram's web embed.
 - **Reddit** — post links (`reddit.com/r/<sub>/comments/<id>/...`), in-app share links (`/r/<sub>/s/<token>`), and `redd.it` / `v.redd.it` short links. yt-dlp's anonymous Reddit access is blocked these days, so argus fetches the post page itself, answers Reddit's JS bot check, and has ffmpeg download only the audio rendition of the `v.redd.it` HLS stream. Reddit-hosted videos only (text/image posts and external-link posts won't work); for private or quarantined subreddits pass `cookiesFromBrowser` to fall back to yt-dlp with your account.

@@ -3,9 +3,10 @@ export { detectPlatform } from './platform.js';
 export { parseTelegramUrl, resolveTelegramVideo, extractVideoUrlFromEmbedHtml } from './telegram.js';
 export { resolveRedditVideo, extractRedditVideoFromPostHtml, parseRedditChallenge } from './reddit.js';
 export { resolveTwitterVideo, parseTwitterStatusUrl, buildSyndicationToken, extractTwitterVideoFromSyndication, pickAudioRenditionUrl, } from './twitter.js';
+export { resolveInstagramVideo, parseInstagramUrl, extractInstagramVideoFromWebInfo, extractInstagramImagesFromWebInfo, pickDashAudioUrl, } from './instagram.js';
 export { resolveModel, defaultModelDir, KNOWN_MODELS, DEFAULT_MODEL } from './models.js';
 export { toSrt, toVtt, toTimestampedText } from './format.js';
-export { ArgusError, UnsupportedUrlError, MissingBinaryError, DownloadError, AudioExtractionError, ModelFetchError, TranscriptionError, } from './errors.js';
+export { ArgusError, UnsupportedUrlError, MissingBinaryError, DownloadError, NoVideoError, AudioExtractionError, ModelFetchError, TranscriptionError, } from './errors.js';
 export type { Platform, TranscriptSegment, TranscribeResult, TranscribeOptions, TranscribeFileOptions, WhisperModel, BinaryPaths, ProgressEvent, ProgressStage, DependencyReport, DependencyStatus, } from './types.js';
 /**
  * Transcribe the audio of a video URL (YouTube, Instagram, Xiaohongshu,

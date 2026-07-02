@@ -27,6 +27,13 @@ export {
   extractTwitterVideoFromSyndication,
   pickAudioRenditionUrl,
 } from './twitter.js';
+export {
+  resolveInstagramVideo,
+  parseInstagramUrl,
+  extractInstagramVideoFromWebInfo,
+  extractInstagramImagesFromWebInfo,
+  pickDashAudioUrl,
+} from './instagram.js';
 export { resolveModel, defaultModelDir, KNOWN_MODELS, DEFAULT_MODEL } from './models.js';
 export { toSrt, toVtt, toTimestampedText } from './format.js';
 export {
@@ -34,6 +41,7 @@ export {
   UnsupportedUrlError,
   MissingBinaryError,
   DownloadError,
+  NoVideoError,
   AudioExtractionError,
   ModelFetchError,
   TranscriptionError,

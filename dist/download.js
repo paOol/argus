@@ -4,8 +4,9 @@ import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { downloadAudioStream } from './audio.js';
-import { DownloadError, MissingBinaryError } from './errors.js';
+import { DownloadError, MissingBinaryError, NoVideoError } from './errors.js';
 import { ExecError, exec, findBinary } from './exec.js';
+import { resolveInstagramVideo } from './instagram.js';
 import { resolveRedditVideo } from './reddit.js';
 import { resolveTelegramVideo } from './telegram.js';
 import { resolveTwitterVideo } from './twitter.js';
@@ -186,6 +187,22 @@ async function downloadRedditAudio(url, destDir, options) {
     });
     return { filePath, title };
 }
+async function downloadInstagramAudio(url, destDir, options) {
+    const emit = options.onProgress ?? (() => { });
+    emit({ stage: 'resolve', message: 'Resolving Instagram post' });
+    const { videoUrl, isAudioOnly, title } = await resolveInstagramVideo(url, {
+        signal: options.signal,
+        timeoutMs: options.timeoutMs,
+    });
+    emit({ stage: 'download', message: 'Downloading audio from Instagram CDN' });
+    const filePath = join(destDir, isAudioOnly ? 'media.m4a' : 'media.mp4');
+    await streamToFile(videoUrl, filePath, {
+        signal: options.signal,
+        timeoutMs: options.timeoutMs,
+        onProgress: (percent) => emit({ stage: 'download', ...(percent !== undefined ? { percent } : {}) }),
+    });
+    return { filePath, ...(title !== undefined ? { title } : {}) };
+}
 async function downloadTwitterAudio(url, destDir, options) {
     const emit = options.onProgress ?? (() => { });
     emit({ stage: 'resolve', message: 'Resolving tweet' });
@@ -206,12 +223,15 @@ async function downloadTwitterAudio(url, destDir, options) {
 /**
  * Download the media for a URL into `destDir`.
  * - Telegram: built-in embed-page extractor + direct CDN streaming (no yt-dlp involved).
+ * - Instagram: built-in GraphQL extractor (self-healing doc_id) + direct CDN
+ *   streaming of the audio-only DASH track; yt-dlp is the fallback when
+ *   cookies are provided (for private/login-gated posts).
  * - Reddit: built-in post-page extractor (with bot-check answering) + ffmpeg
  *   pulling only the audio track from the v.redd.it stream; yt-dlp is the
- *   fallback when `cookiesFromBrowser` is provided.
+ *   fallback when cookies are provided.
  * - Twitter/X: built-in syndication-endpoint extractor + ffmpeg pulling only
- *   the audio rendition; yt-dlp is the fallback when `cookiesFromBrowser` is
- *   provided (for protected/login-gated tweets).
+ *   the audio rendition; yt-dlp is the fallback when cookies are provided
+ *   (for protected/login-gated tweets).
  * - Xiaohongshu short links: redirect-resolved first, then handed to yt-dlp.
  * - Everything else: yt-dlp, requesting audio-only formats when the site offers them.
  */
@@ -232,14 +252,30 @@ export async function downloadMedia(url, platform, destDir, options = {}) {
         });
         return { filePath, title: `Telegram: ${post.channel}/${post.messageId}` };
     }
+    const hasCookies = Boolean(options.cookiesFromBrowser || options.cookiesFile);
+    if (platform === 'instagram') {
+        try {
+            return await downloadInstagramAudio(url, destDir, options);
+        }
+        catch (cause) {
+            // A photo post stays a photo post with an account — yt-dlp can't help.
+            if (cause instanceof NoVideoError)
+                throw cause;
+            // With account cookies, yt-dlp's authenticated extractor can reach
+            // private/login-gated posts the anonymous GraphQL query cannot.
+            if (!hasCookies)
+                throw cause;
+            return downloadWithYtDlp(url, destDir, options);
+        }
+    }
     if (platform === 'reddit') {
         try {
             return await downloadRedditAudio(url, destDir, options);
         }
         catch (cause) {
-            // With browser cookies, yt-dlp's authenticated Reddit extractor can
+            // With account cookies, yt-dlp's authenticated Reddit extractor can
             // handle posts the anonymous page-scrape cannot (private subs, etc.).
-            if (!options.cookiesFromBrowser)
+            if (!hasCookies)
                 throw cause;
             return downloadWithYtDlp(url, destDir, options);
         }
@@ -249,9 +285,9 @@ export async function downloadMedia(url, platform, destDir, options = {}) {
             return await downloadTwitterAudio(url, destDir, options);
         }
         catch (cause) {
-            // With browser cookies, yt-dlp's authenticated extractor can reach
+            // With account cookies, yt-dlp's authenticated extractor can reach
             // protected/age-gated tweets the anonymous syndication endpoint cannot.
-            if (!options.cookiesFromBrowser)
+            if (!hasCookies)
                 throw cause;
             return downloadWithYtDlp(url, destDir, options);
         }

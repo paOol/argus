@@ -34,6 +34,13 @@ export interface TwitterVideo {
  */
 export declare function extractTwitterVideoFromSyndication(json: unknown): TwitterVideo | null;
 /**
+ * Pull the photo URLs out of a syndication `tweet-result` payload, in display
+ * order. Prefers the modern `photos` array; falls back to v1.1 `mediaDetails`
+ * entries of type "photo". Returns [] for tweets without photos.
+ * Exported separately so it can be unit-tested without network access.
+ */
+export declare function extractTwitterImagesFromSyndication(json: unknown): string[];
+/**
  * From an HLS master playlist, return the URL of the highest-bitrate standalone
  * audio rendition (`#EXT-X-MEDIA:TYPE=AUDIO`). This lets ffmpeg fetch only the
  * audio segments instead of the full video. Returns null when the master has no

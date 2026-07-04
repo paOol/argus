@@ -1,4 +1,4 @@
-import { DownloadError } from './errors.js';
+import { DownloadError, NoVideoError } from './errors.js';
 
 const BROWSER_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
@@ -104,6 +104,26 @@ export function extractTwitterVideoFromSyndication(json: unknown): TwitterVideo 
 }
 
 /**
+ * Pull the photo URLs out of a syndication `tweet-result` payload, in display
+ * order. Prefers the modern `photos` array; falls back to v1.1 `mediaDetails`
+ * entries of type "photo". Returns [] for tweets without photos.
+ * Exported separately so it can be unit-tested without network access.
+ */
+export function extractTwitterImagesFromSyndication(json: unknown): string[] {
+  const root = json as Record<string, any>;
+
+  const photos = (Array.isArray(root?.photos) ? root.photos : [])
+    .map((p: any) => p?.url)
+    .filter((u: unknown): u is string => typeof u === 'string' && u.startsWith('http'));
+  if (photos.length > 0) return photos;
+
+  return (Array.isArray(root?.mediaDetails) ? root.mediaDetails : [])
+    .filter((m: any) => m?.type === 'photo')
+    .map((m: any) => m?.media_url_https)
+    .filter((u: unknown): u is string => typeof u === 'string' && u.startsWith('http'));
+}
+
+/**
  * From an HLS master playlist, return the URL of the highest-bitrate standalone
  * audio rendition (`#EXT-X-MEDIA:TYPE=AUDIO`). This lets ffmpeg fetch only the
  * audio segments instead of the full video. Returns null when the master has no
@@ -180,9 +200,14 @@ export async function resolveTwitterVideo(
 
   const video = extractTwitterVideoFromSyndication(json);
   if (!video) {
-    throw new DownloadError(
-      `No video found in tweet ${url}. ` +
-        'The tweet may contain only text/images, or its video may be an external link (these are not supported).',
+    const imageUrls = extractTwitterImagesFromSyndication(json);
+    throw new NoVideoError(
+      imageUrls.length > 0
+        ? `Tweet ${url} is a photo tweet — there is no video to transcribe. ` +
+          `The image URL${imageUrls.length > 1 ? 's are' : ' is'} attached to this error.`
+        : `No video found in tweet ${url}. ` +
+          'The tweet may contain only text, or its video may be an external link (these are not supported).',
+      imageUrls,
     );
   }
 

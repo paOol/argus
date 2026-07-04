@@ -1,4 +1,4 @@
-import { DownloadError, UnsupportedUrlError } from './errors.js';
+import { DownloadError, NoVideoError, UnsupportedUrlError } from './errors.js';
 const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 /**
  * Parse a public Telegram post URL into channel + message id.
@@ -47,6 +47,25 @@ export function extractVideoUrlFromEmbedHtml(html) {
     return src.startsWith('http') ? src : null;
 }
 /**
+ * Extract the photo URLs from a Telegram embed page's HTML, in display order.
+ * Each photo renders as <a class="tgme_widget_message_photo_wrap ..."
+ * style="...background-image:url('https://cdnN.telesco.pe/file/...')">, one
+ * element per photo for albums. Returns [] for photo-less posts.
+ * Exported separately so it can be unit-tested without network access.
+ */
+export function extractPhotoUrlsFromEmbedHtml(html) {
+    const urls = [];
+    for (const tag of html.match(/<a\b[^>]*\btgme_widget_message_photo_wrap\b[^>]*/g) ?? []) {
+        const raw = tag.match(/background-image:\s*url\('([^']+)'\)/)?.[1];
+        if (!raw)
+            continue;
+        const url = decodeHtmlEntities(raw);
+        if (url.startsWith('http') && !urls.includes(url))
+            urls.push(url);
+    }
+    return urls;
+}
+/**
  * Resolve a public t.me post link to its direct video URL by fetching the
  * embed page — plain HTTPS, no Telegram API, no credentials.
  */
@@ -74,6 +93,11 @@ export async function resolveTelegramVideo(url, options = {}) {
     const html = await response.text();
     const videoUrl = extractVideoUrlFromEmbedHtml(html);
     if (!videoUrl) {
+        const imageUrls = extractPhotoUrlsFromEmbedHtml(html);
+        if (imageUrls.length > 0) {
+            throw new NoVideoError(`Telegram post https://t.me/${post.channel}/${post.messageId} is a photo post — there is no video to transcribe. ` +
+                `The image URL${imageUrls.length > 1 ? 's are' : ' is'} attached to this error.`, imageUrls);
+        }
         throw new DownloadError(`No video found in Telegram post https://t.me/${post.channel}/${post.messageId}. ` +
             'The post may not contain a video, the channel may be private or restricted, ' +
             'or the video may be too large for Telegram to serve via web embed.');

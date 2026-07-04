@@ -1,4 +1,4 @@
-import { DownloadError } from './errors.js';
+import { DownloadError, NoVideoError } from './errors.js';
 const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 function decodeHtmlEntities(value) {
     return value
@@ -62,6 +62,66 @@ export function extractRedditVideoFromPostHtml(html) {
         return { videoUrl, title };
     }
     return null;
+}
+/** Hosts that serve Reddit's own post media (as opposed to avatars, awards, external links). */
+const REDDIT_IMAGE_HOSTS = new Set(['i.redd.it', 'preview.redd.it']);
+function isRedditImageUrl(url) {
+    try {
+        return REDDIT_IMAGE_HOSTS.has(new URL(url).hostname.toLowerCase());
+    }
+    catch {
+        return false;
+    }
+}
+/** Largest candidate of a srcset (entries are "url 320w, url 640w, ..."). */
+function largestSrcsetCandidate(srcset) {
+    let best = null;
+    for (const entry of srcset.split(',')) {
+        const [url, descriptor] = entry.trim().split(/\s+/);
+        if (!url)
+            continue;
+        const width = Number(descriptor?.match(/^(\d+)w$/)?.[1] ?? 0);
+        if (!best || width > best.width)
+            best = { width, url };
+    }
+    return best?.url ?? null;
+}
+/**
+ * Extract the post's image URLs from a Reddit post page, in display order.
+ * Single-image posts carry their full-resolution i.redd.it URL in the
+ * <shreddit-post> tag's content-href; galleries render each slide as a
+ * lightbox <img> whose srcset candidates are signed preview.redd.it URLs
+ * (the signature only covers the exact query params, so URLs are kept
+ * verbatim). Returns [] when the post has no Reddit-hosted images.
+ * Exported separately so it can be unit-tested without network access.
+ */
+export function extractRedditImagesFromPostHtml(html) {
+    const postTag = html.match(/<shreddit-post\b[^>]*/)?.[0];
+    if (!postTag)
+        return [];
+    // Single image post: <shreddit-post post-type="image" content-href="https://i.redd.it/...">
+    if (postTag.match(/\bpost-type="([^"]*)"/)?.[1] === 'image') {
+        const href = postTag.match(/\bcontent-href="([^"]+)"/)?.[1];
+        const url = href ? decodeHtmlEntities(href) : '';
+        return isRedditImageUrl(url) ? [url] : [];
+    }
+    // Gallery: each slide renders <img class="media-lightbox-img ..."> (plus a
+    // decorative blurred copy we skip). Lazy slides move src/srcset into
+    // data-lazy-* attributes.
+    const carousel = html.match(/<gallery-carousel[\s\S]*?<\/gallery-carousel>/)?.[0];
+    if (!carousel)
+        return [];
+    const urls = [];
+    for (const img of carousel.match(/<img\b[^>]*/g) ?? []) {
+        if (!/\bclass="[^"]*\bmedia-lightbox-img\b/.test(img))
+            continue;
+        const srcset = img.match(/\b(?:data-lazy-)?srcset="([^"]*)"/)?.[1];
+        const src = img.match(/\b(?:data-lazy-)?src="([^"]*)"/)?.[1];
+        const raw = (srcset && largestSrcsetCandidate(decodeHtmlEntities(srcset))) || (src && decodeHtmlEntities(src)) || '';
+        if (isRedditImageUrl(raw) && !urls.includes(raw))
+            urls.push(raw);
+    }
+    return urls;
 }
 /**
  * Fetch a page following redirects by hand so cookies survive across hops —
@@ -133,6 +193,17 @@ export async function resolveRedditVideo(url, options = {}) {
     }
     const video = extractRedditVideoFromPostHtml(page.html);
     if (!video) {
+        // Only call it a video-less post when the post actually rendered — a
+        // private/quarantined subreddit serves an interstitial with no post tag,
+        // and that should stay a download failure (yt-dlp + cookies may reach it).
+        if (/<shreddit-post\b/.test(page.html)) {
+            const imageUrls = extractRedditImagesFromPostHtml(page.html);
+            throw new NoVideoError(imageUrls.length > 0
+                ? `Reddit post ${url} is an image post — there is no video to transcribe. ` +
+                    `The image URL${imageUrls.length > 1 ? 's are' : ' is'} attached to this error.`
+                : `No video found in Reddit post ${url}. ` +
+                    'The post may be a text post or an external link (these are not supported).', imageUrls);
+        }
         throw new DownloadError(`No video found in Reddit post ${url}. ` +
             'The post may not contain a Reddit-hosted video (text/image posts and external links are not supported), ' +
             'or it may be in a private/quarantined subreddit.');

@@ -17,6 +17,14 @@ export declare function parseTelegramUrl(url: string): TelegramPost;
  */
 export declare function extractVideoUrlFromEmbedHtml(html: string): string | null;
 /**
+ * Extract the photo URLs from a Telegram embed page's HTML, in display order.
+ * Each photo renders as <a class="tgme_widget_message_photo_wrap ..."
+ * style="...background-image:url('https://cdnN.telesco.pe/file/...')">, one
+ * element per photo for albums. Returns [] for photo-less posts.
+ * Exported separately so it can be unit-tested without network access.
+ */
+export declare function extractPhotoUrlsFromEmbedHtml(html: string): string[];
+/**
  * Resolve a public t.me post link to its direct video URL by fetching the
  * embed page — plain HTTPS, no Telegram API, no credentials.
  */

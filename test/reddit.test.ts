@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildChallengeAnswerUrl,
+  extractRedditImagesFromPostHtml,
   extractRedditVideoFromPostHtml,
   parseRedditChallenge,
 } from '../src/reddit.js';
@@ -100,5 +101,57 @@ describe('extractRedditVideoFromPostHtml', () => {
       videoUrl: 'https://v.redd.it/ye6kryzzfk6h1/HLSPlaylist.m3u8?f=sd&v=1&a=1783744530%2CZWY4',
       title: undefined,
     });
+  });
+});
+
+describe('extractRedditImagesFromPostHtml', () => {
+  // Attribute order and hosts mirror a real post page (r/pics, Jun 2026).
+  const IMAGE_POST =
+    '<shreddit-post permalink="/r/pics/comments/1uhbo1x/title/" ' +
+    'content-href="https://i.redd.it/idnqwnbfnv9h1.jpeg" domain="i.redd.it" ' +
+    'post-type="image" post-title="A sign">';
+
+  // Gallery slides render a blurred backdrop <img> plus the lightbox <img>;
+  // the first slide is eager (src/srcset), later ones lazy (data-lazy-*).
+  const GALLERY_POST =
+    '<shreddit-post permalink="/r/analog/comments/1um8n56/title/" ' +
+    'content-href="https://www.reddit.com/gallery/1um8n56" post-type="gallery">' +
+    '<gallery-carousel>' +
+    '<img class="post-background-image-filter z-0" src="https://preview.redd.it/one-v0-aaa.jpg?width=640&amp;crop=smart&amp;auto=webp&amp;s=blur">' +
+    '<img class="media-lightbox-img h-full" src="https://preview.redd.it/one-v0-aaa.jpg?width=640&amp;crop=smart&amp;auto=webp&amp;s=sig640" ' +
+    'srcset="https://preview.redd.it/one-v0-aaa.jpg?width=320&amp;s=sig320 320w, https://preview.redd.it/one-v0-aaa.jpg?width=1080&amp;s=sig1080 1080w, https://preview.redd.it/one-v0-aaa.jpg?width=640&amp;s=sig640 640w">' +
+    '<img class="post-background-image-filter z-0" data-lazy-src="https://preview.redd.it/two-v0-bbb.jpg?width=640&amp;s=blur2">' +
+    '<img class="media-lightbox-img h-full" data-lazy-src="https://preview.redd.it/two-v0-bbb.jpg?width=640&amp;s=lazy640" ' +
+    'data-lazy-srcset="https://preview.redd.it/two-v0-bbb.jpg?width=320&amp;s=lazy320 320w, https://preview.redd.it/two-v0-bbb.jpg?width=1080&amp;s=lazy1080 1080w">' +
+    '</gallery-carousel>';
+
+  it('returns the full-resolution content-href of a single image post', () => {
+    expect(extractRedditImagesFromPostHtml(IMAGE_POST)).toEqual(['https://i.redd.it/idnqwnbfnv9h1.jpeg']);
+  });
+
+  it('returns one image per gallery slide, preferring the largest srcset candidate', () => {
+    expect(extractRedditImagesFromPostHtml(GALLERY_POST)).toEqual([
+      'https://preview.redd.it/one-v0-aaa.jpg?width=1080&s=sig1080',
+      'https://preview.redd.it/two-v0-bbb.jpg?width=1080&s=lazy1080',
+    ]);
+  });
+
+  it('falls back to src when a lightbox img has no srcset', () => {
+    const html =
+      '<shreddit-post post-type="gallery" content-href="https://www.reddit.com/gallery/x">' +
+      '<gallery-carousel><img class="media-lightbox-img" src="https://preview.redd.it/solo.jpg?s=1"></gallery-carousel>';
+    expect(extractRedditImagesFromPostHtml(html)).toEqual(['https://preview.redd.it/solo.jpg?s=1']);
+  });
+
+  it('ignores images that are not Reddit-hosted post media', () => {
+    const external = IMAGE_POST.replace('https://i.redd.it/idnqwnbfnv9h1.jpeg', 'https://i.imgur.com/x.jpg');
+    expect(extractRedditImagesFromPostHtml(external)).toEqual([]);
+  });
+
+  it('returns [] for text posts and pages without a rendered post', () => {
+    expect(
+      extractRedditImagesFromPostHtml('<shreddit-post post-type="text" permalink="/r/x/comments/1/t/">'),
+    ).toEqual([]);
+    expect(extractRedditImagesFromPostHtml('<html><body>interstitial</body></html>')).toEqual([]);
   });
 });

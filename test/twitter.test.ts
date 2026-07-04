@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildSyndicationToken,
+  extractTwitterImagesFromSyndication,
   extractTwitterVideoFromSyndication,
   parseTwitterStatusUrl,
   pickAudioRenditionUrl,
@@ -84,6 +85,40 @@ describe('extractTwitterVideoFromSyndication', () => {
   it('returns null for a tweet with no video', () => {
     expect(extractTwitterVideoFromSyndication({ text: 'just text', photos: [{}] })).toBeNull();
     expect(extractTwitterVideoFromSyndication({})).toBeNull();
+  });
+});
+
+describe('extractTwitterImagesFromSyndication', () => {
+  it('returns the photo URLs from the `photos` array in order', () => {
+    // Shape verified against the live endpoint for status 266031293945503744.
+    const json = {
+      text: 'Four more years. http://t.co/bAJE6Vom',
+      photos: [
+        { url: 'https://pbs.twimg.com/media/A7EiDWcCYAAZT1D.jpg', width: 800, height: 532 },
+        { url: 'https://pbs.twimg.com/media/second.jpg', width: 800, height: 532 },
+      ],
+      mediaDetails: [{ type: 'photo', media_url_https: 'https://pbs.twimg.com/media/A7EiDWcCYAAZT1D.jpg' }],
+    };
+    expect(extractTwitterImagesFromSyndication(json)).toEqual([
+      'https://pbs.twimg.com/media/A7EiDWcCYAAZT1D.jpg',
+      'https://pbs.twimg.com/media/second.jpg',
+    ]);
+  });
+
+  it('falls back to photo-typed mediaDetails when `photos` is absent', () => {
+    const json = {
+      mediaDetails: [
+        { type: 'photo', media_url_https: 'https://pbs.twimg.com/media/a.jpg' },
+        { type: 'video', media_url_https: 'https://pbs.twimg.com/media/thumb.jpg' },
+      ],
+    };
+    expect(extractTwitterImagesFromSyndication(json)).toEqual(['https://pbs.twimg.com/media/a.jpg']);
+  });
+
+  it('ignores malformed entries and returns [] for text-only tweets', () => {
+    expect(extractTwitterImagesFromSyndication({ text: 'just text' })).toEqual([]);
+    expect(extractTwitterImagesFromSyndication({ photos: [{}, { url: 42 }] })).toEqual([]);
+    expect(extractTwitterImagesFromSyndication({})).toEqual([]);
   });
 });
 

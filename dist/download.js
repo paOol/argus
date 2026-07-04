@@ -273,6 +273,9 @@ export async function downloadMedia(url, platform, destDir, options = {}) {
             return await downloadRedditAudio(url, destDir, options);
         }
         catch (cause) {
+            // An image post stays an image post with an account — yt-dlp can't help.
+            if (cause instanceof NoVideoError)
+                throw cause;
             // With account cookies, yt-dlp's authenticated Reddit extractor can
             // handle posts the anonymous page-scrape cannot (private subs, etc.).
             if (!hasCookies)
@@ -285,6 +288,9 @@ export async function downloadMedia(url, platform, destDir, options = {}) {
             return await downloadTwitterAudio(url, destDir, options);
         }
         catch (cause) {
+            // A photo tweet stays a photo tweet with an account — yt-dlp can't help.
+            if (cause instanceof NoVideoError)
+                throw cause;
             // With account cookies, yt-dlp's authenticated extractor can reach
             // protected/age-gated tweets the anonymous syndication endpoint cannot.
             if (!hasCookies)

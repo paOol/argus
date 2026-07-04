@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { UnsupportedUrlError } from '../src/errors.js';
-import { extractVideoUrlFromEmbedHtml, parseTelegramUrl } from '../src/telegram.js';
+import {
+  extractPhotoUrlsFromEmbedHtml,
+  extractVideoUrlFromEmbedHtml,
+  parseTelegramUrl,
+} from '../src/telegram.js';
 
 describe('parseTelegramUrl', () => {
   it('parses a standard post link', () => {
@@ -57,5 +61,33 @@ describe('extractVideoUrlFromEmbedHtml', () => {
 
   it('returns null for non-http sources', () => {
     expect(extractVideoUrlFromEmbedHtml('<video src="blob:xyz"></video>')).toBeNull();
+  });
+});
+
+describe('extractPhotoUrlsFromEmbedHtml', () => {
+  // Markup mirrors a real embed page of a two-photo album (t.me/durov/510).
+  const ALBUM_PAGE = `
+    <a class="tgme_widget_message_photo_wrap grouped_media_wrap blured js-message_photo"
+       style="left:0px;top:0px;width:225px;background-image:url('https://cdn4.telesco.pe/file/first.jpg')"
+       data-ratio="0.7225" href="https://t.me/durov/510?single"></a>
+    <a class="tgme_widget_message_photo_wrap grouped_media_wrap blured js-message_photo"
+       style="left:227px;top:0px;width:226px;background-image:url('https://cdn4.telesco.pe/file/second.jpg')"
+       data-ratio="0.7225" href="https://t.me/durov/511?single"></a>`;
+
+  it('returns one URL per photo wrap, in display order', () => {
+    expect(extractPhotoUrlsFromEmbedHtml(ALBUM_PAGE)).toEqual([
+      'https://cdn4.telesco.pe/file/first.jpg',
+      'https://cdn4.telesco.pe/file/second.jpg',
+    ]);
+  });
+
+  it('decodes HTML entities in the background-image URL', () => {
+    const html = `<a class="tgme_widget_message_photo_wrap" style="background-image:url('https://cdn4.telesco.pe/file/a.jpg?t=1&amp;s=2')">`;
+    expect(extractPhotoUrlsFromEmbedHtml(html)).toEqual(['https://cdn4.telesco.pe/file/a.jpg?t=1&s=2']);
+  });
+
+  it('returns [] for pages without photo wraps', () => {
+    expect(extractPhotoUrlsFromEmbedHtml('<video src="https://cdn4.telesco.pe/file/v.mp4"></video>')).toEqual([]);
+    expect(extractPhotoUrlsFromEmbedHtml('')).toEqual([]);
   });
 });

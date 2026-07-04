@@ -24,6 +24,16 @@ export interface RedditVideo {
  */
 export declare function extractRedditVideoFromPostHtml(html: string): RedditVideo | null;
 /**
+ * Extract the post's image URLs from a Reddit post page, in display order.
+ * Single-image posts carry their full-resolution i.redd.it URL in the
+ * <shreddit-post> tag's content-href; galleries render each slide as a
+ * lightbox <img> whose srcset candidates are signed preview.redd.it URLs
+ * (the signature only covers the exact query params, so URLs are kept
+ * verbatim). Returns [] when the post has no Reddit-hosted images.
+ * Exported separately so it can be unit-tested without network access.
+ */
+export declare function extractRedditImagesFromPostHtml(html: string): string[];
+/**
  * Resolve a Reddit post URL (canonical, share, or redd.it short link) to its
  * direct video stream URL by fetching the post page and answering Reddit's JS
  * challenge when one is served — no credentials and no Reddit API involved.

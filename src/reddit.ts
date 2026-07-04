@@ -54,6 +54,12 @@ export interface RedditVideo {
  * Exported separately so it can be unit-tested without network access.
  */
 export function extractRedditVideoFromPostHtml(html: string): RedditVideo | null {
+  // Image and gallery posts sometimes carry a player too, for an
+  // auto-generated video rendition (v.redd.it/link/<post>/asset/...) — the
+  // post's declared type wins over the presence of a player.
+  const postType = html.match(/<shreddit-post\b[^>]*/)?.[0]?.match(/\bpost-type="([^"]*)"/)?.[1];
+  if (postType === 'image' || postType === 'gallery') return null;
+
   for (const tag of html.match(/<shreddit-player(?:-\d+)?\b[^>]*/g) ?? []) {
     if (/\bpost-promoted\b/.test(tag)) continue;
     const src = tag.match(/\bsrc="([^"]+)"/)?.[1];

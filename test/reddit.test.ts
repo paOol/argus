@@ -96,6 +96,16 @@ describe('extractRedditVideoFromPostHtml', () => {
     expect(extractRedditVideoFromPostHtml('<html><body>text post</body></html>')).toBeNull();
   });
 
+  it('returns null for image/gallery posts even when a player is present', () => {
+    // Reddit sometimes injects an auto-generated video rendition into image
+    // post pages: <shreddit-player src="https://v.redd.it/link/<post>/asset/...">.
+    const html =
+      '<shreddit-post permalink="/r/pics/comments/1uhbo1x/t/" post-type="image" ' +
+      'content-href="https://i.redd.it/idnqwnbfnv9h1.jpeg">' +
+      '<shreddit-player src="https://v.redd.it/link/1uhbo1x/asset/luzyg0pjx0ah1/HLSPlaylist.m3u8?f=hd&amp;v=1">';
+    expect(extractRedditVideoFromPostHtml(html)).toBeNull();
+  });
+
   it('omits the title when no <shreddit-title> is present', () => {
     expect(extractRedditVideoFromPostHtml(MAIN_PLAYER)).toEqual({
       videoUrl: 'https://v.redd.it/ye6kryzzfk6h1/HLSPlaylist.m3u8?f=sd&v=1&a=1783744530%2CZWY4',

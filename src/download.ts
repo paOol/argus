@@ -9,6 +9,7 @@ import { downloadAudioStream } from './audio.js';
 import { DownloadError, MissingBinaryError, NoVideoError } from './errors.js';
 import { ExecError, exec, findBinary } from './exec.js';
 import { resolveInstagramVideo } from './instagram.js';
+import { isXhsShortLinkHost } from './platform.js';
 import { resolveRedditVideo } from './reddit.js';
 import { resolveTelegramVideo } from './telegram.js';
 import { resolveTwitterVideo } from './twitter.js';
@@ -368,7 +369,7 @@ export async function downloadMedia(
   let target = url;
   if (platform === 'xiaohongshu') {
     target = rewriteRednoteHost(target);
-    if (new URL(target).hostname.toLowerCase() === 'xhslink.com') {
+    if (isXhsShortLinkHost(new URL(target).hostname)) {
       emit({ stage: 'resolve', message: 'Resolving Xiaohongshu short link' });
       target = recoverXhsBotWallRedirect(await resolveRedirects(target, options.signal));
       // Dead/expired share links bounce to the generic feed instead of a note page.

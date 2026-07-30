@@ -14,13 +14,26 @@ const YOUTUBE_HOSTS = new Set([
 const INSTAGRAM_HOSTS = new Set(['instagram.com', 'www.instagram.com', 'm.instagram.com', 'instagr.am']);
 
 // Xiaohongshu is migrating to the rednote.com domain; both serve the same notes.
+// Share links come from two short-link domains: the older xhslink.com/a/... and
+// the current app's xhslink.cn/o/... — both redirect to the same note pages.
 const XIAOHONGSHU_HOSTS = new Set([
   'xiaohongshu.com',
   'www.xiaohongshu.com',
   'xhslink.com',
+  'www.xhslink.com',
+  'xhslink.cn',
+  'www.xhslink.cn',
   'rednote.com',
   'www.rednote.com',
 ]);
+
+/**
+ * True for XHS share-link hosts, whose URLs must be redirect-resolved before
+ * yt-dlp sees them — its extractor only matches canonical note URLs.
+ */
+export function isXhsShortLinkHost(hostname: string): boolean {
+  return /(^|\.)xhslink\.(com|cn)$/i.test(hostname);
+}
 
 const TELEGRAM_HOSTS = new Set(['t.me', 'telegram.me', 'www.t.me', 'www.telegram.me']);
 

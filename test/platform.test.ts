@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { UnsupportedUrlError } from '../src/errors.js';
-import { detectPlatform } from '../src/platform.js';
+import { detectPlatform, isXhsShortLinkHost } from '../src/platform.js';
 
 describe('detectPlatform', () => {
   it.each([
@@ -18,6 +18,9 @@ describe('detectPlatform', () => {
     ['https://www.xiaohongshu.com/explore/65f1a2b3000000001203abcd', 'xiaohongshu'],
     ['https://www.xiaohongshu.com/discovery/item/65f1a2b3000000001203abcd', 'xiaohongshu'],
     ['http://xhslink.com/a/AbCdEf123', 'xiaohongshu'],
+    // The current app hands out xhslink.cn/o/... share links.
+    ['http://xhslink.cn/o/1oDfddAMzgO', 'xiaohongshu'],
+    ['https://www.xhslink.cn/o/1oDfddAMzgO', 'xiaohongshu'],
     ['https://www.rednote.com/explore/69ce30d3000000002100791c?xsec_token=ABQ=', 'xiaohongshu'],
     ['https://rednote.com/explore/69ce30d3000000002100791c', 'xiaohongshu'],
     ['https://t.me/durov/123', 'telegram'],
@@ -45,5 +48,21 @@ describe('detectPlatform', () => {
   it('rejects non-http protocols', () => {
     expect(() => detectPlatform('ftp://example.com/video.mp4')).toThrow(UnsupportedUrlError);
     expect(() => detectPlatform('file:///etc/passwd')).toThrow(UnsupportedUrlError);
+  });
+});
+
+describe('isXhsShortLinkHost', () => {
+  it('matches both share-link domains, with or without www', () => {
+    expect(isXhsShortLinkHost('xhslink.com')).toBe(true);
+    expect(isXhsShortLinkHost('www.xhslink.com')).toBe(true);
+    expect(isXhsShortLinkHost('xhslink.cn')).toBe(true);
+    expect(isXhsShortLinkHost('XHSLINK.CN')).toBe(true);
+  });
+
+  it('rejects canonical note hosts and lookalikes', () => {
+    expect(isXhsShortLinkHost('www.xiaohongshu.com')).toBe(false);
+    expect(isXhsShortLinkHost('rednote.com')).toBe(false);
+    expect(isXhsShortLinkHost('notxhslink.com')).toBe(false);
+    expect(isXhsShortLinkHost('xhslink.com.evil.test')).toBe(false);
   });
 });

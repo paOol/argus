@@ -15,7 +15,7 @@ Usage:
   argus <url> [options]      Transcribe a video link
   argus doctor               Check that yt-dlp, ffmpeg, and whisper.cpp are installed
 
-Supported links: YouTube, Instagram, Xiaohongshu (incl. xhslink.com),
+Supported links: YouTube, Instagram, Xiaohongshu (incl. xhslink.com/.cn),
 public Telegram posts (t.me/<channel>/<id>), Reddit video posts,
 Twitter/X tweets (x.com/<user>/status/<id>), plus any other site yt-dlp knows.
 
